@@ -27,47 +27,79 @@ scheduling, etc.) — that is future work, out of scope here.
 
 ```
 Flashcard App/
-├── package.json          # root workspace config
-├── .husky/                # pre-commit hook
-├── client/                # Vite + React frontend
+├── package.json           # root workspace config
+├── .gitignore
+├── .eslintrc.json          # or eslint.config.js, see below
+├── .husky/                 # pre-commit hook
+├── playwright.config.js    # Playwright config, at project root
+├── client/                 # Vite + React frontend
+│   ├── package.json
+│   ├── index.html
 │   ├── vite.config.js
 │   └── src/
 │       ├── main.jsx
 │       ├── App.jsx
 │       ├── App.test.jsx
 │       └── test-setup.js
-├── server/                # Express API (Node ESM)
+├── server/                 # Express API (Node ESM)
+│   ├── package.json
 │   └── src/
 │       ├── app.js
 │       ├── app.test.js
 │       └── index.js
-└── e2e/                   # Playwright
-    ├── playwright.config.js
+└── e2e/                    # Playwright tests
     └── ping.spec.js
 ```
 
 Two workspace packages (`client`, `server`) plus a root-level `e2e`
-directory that is not its own workspace package (Playwright runs from
-the root against both dev servers).
+directory that is not its own workspace package. `playwright.config.js`
+lives at the project root (not inside `e2e/`) and points its `testDir`
+at `./e2e`, so Playwright runs from the root against both dev servers.
 
 ## Root workspace (`package.json`)
 
 - `"workspaces": ["client", "server"]`
-- `"scripts"`:
+- `"scripts"`, all required so the pre-commit hook and CLAUDE.md's
+  commands work as documented:
   - `"dev"`: `concurrently "npm run dev -w server" "npm run dev -w client"`
+  - `"lint"`: `eslint .`
+  - `"test"`: `npm run test -w server && npm run test -w client`
+    (runs the server's unit/API tests and the client's unit tests;
+    each workspace's own `test` script runs Vitest once, non-watch,
+    e.g. `vitest run`)
+  - `"test:e2e"`: `playwright test`
+  - `"prepare"`: `husky` (registers the git hooks on `npm install`)
 - devDependencies: `concurrently`, `eslint`, `prettier`, `husky`,
   `lint-staged`, `@playwright/test`
 - `lint-staged` config (in `package.json` or `.lintstagedrc`):
   `{"**/*.{js,jsx}": "eslint"}`
-- Husky pre-commit hook runs lint, unit tests (client + server), and
-  e2e tests. Per CLAUDE.md, this hook is never bypassed with
-  `--no-verify`.
+- `.husky/pre-commit` runs, in order: `npx lint-staged`, `npm run
+  test`, `npm run test:e2e`. Per CLAUDE.md, this hook is never
+  bypassed with `--no-verify`.
+- `.eslintrc.json` (or flat-config `eslint.config.js`) at the root,
+  shared by `client` and `server`: base `eslint:recommended`, plus
+  `eslint-plugin-react` and the React Hooks rules for `client/**`
+  (jsx-aware parsing so `.jsx` files lint cleanly), and Node/ESM globals
+  for `server/**`. This is what `npm run lint` and `lint-staged`
+  actually run against — without it those scripts have no rules to
+  enforce.
+- `.gitignore` at the root covering `node_modules/`, build output
+  (`client/dist/`), the dev SQLite file (`server/flashcards.db`),
+  Playwright artifacts (`playwright-report/`, `test-results/`), and
+  editor/OS cruft (`.DS_Store`).
 
 ## `client/` — Vite + React frontend
 
+- `client/package.json`: its own workspace manifest — `name`,
+  `"type": "module"`, dependencies, devDependencies (below), and
+  scripts `"dev": "vite"`, `"build": "vite build"`,
+  `"test": "vitest run"`
 - dependencies: `react`, `react-dom`, `prop-types`
 - devDependencies: `vite`, `@vitejs/plugin-react`, `vitest`, `jsdom`,
   `@testing-library/react`, `@testing-library/jest-dom`
+- `index.html`: the Vite entry HTML at `client/index.html` — root
+  `<div id="root"></div>` plus `<script type="module" src="/src/main.jsx">`.
+  Required for `vite` and `vite build` to have an entry point at all.
 - `vite.config.js`:
   - dev server proxy: `/api` → `http://localhost:3001`
   - Vitest config: `environment: 'jsdom'`,
@@ -81,9 +113,12 @@ the root against both dev servers).
 
 ## `server/` — Express backend (Node ESM), port 3001
 
+- `server/package.json`: its own workspace manifest — `name`,
+  `"type": "module"`, dependencies, devDependencies (below), and
+  scripts `"dev": "node --watch src/index.js"`,
+  `"test": "vitest run"`
 - dependencies: `express`, `zod`
 - devDependencies: `vitest`, `supertest`
-- `"scripts"`: `"dev": "node --watch src/index.js"`
 - `src/app.js`: builds the Express app, registers routes, exports the
   app (no `listen()` call here, so it can be imported directly by
   Supertest)
@@ -95,12 +130,20 @@ the root against both dev servers).
 
 ## `e2e/` — Playwright
 
-- `playwright.config.js` at the project root, configured to start
-  the dev servers (or expect them running) and test against
+- `playwright.config.js` at the project root (see the Architecture
+  tree above), with `testDir: './e2e'`, configured to start the dev
+  servers (or expect them running) and test against
   `http://localhost:5173`
-- `ping.spec.js`: a smoke test that loads the client and confirms the
-  page renders (validates the full stack — client served, API
-  proxied)
+- `e2e/ping.spec.js`: a smoke test with two assertions, both required
+  so the test validates the full stack rather than just the client:
+  1. Loads the client at `/` and confirms the page renders (e.g. the
+     `App` placeholder content is visible).
+  2. Sends a `GET` request to `/api/ping` **through the Vite dev
+     server proxy** (i.e. requested against the `http://localhost:5173`
+     base URL, not directly against port 3001) and asserts the JSON
+     body equals `{ message: "pong" }`. This is what actually proves
+     the client-to-server proxy wiring works end-to-end, not just that
+     each half runs in isolation.
 
 ## Testing approach (TDD)
 
@@ -113,10 +156,10 @@ business logic, so TDD applies narrowly:
 - **Client**: `App.test.jsx` (render assertion) is written and run
   (failing) before `App.jsx` is implemented.
 - Config and wiring files (root `package.json`, `vite.config.js`,
-  `playwright.config.js`, husky/lint-staged setup) are not
-  "test-first" in the same sense — they are verified by running the
-  commands they configure (`npm run dev`, `npm test`, `npx playwright
-  test`) after being written.
+  `playwright.config.js`, husky/lint-staged setup, `.eslintrc.json`)
+  are not "test-first" in the same sense — they are verified by
+  running the commands they configure (`npm run dev`, `npm run lint`,
+  `npm test`, `npm run test:e2e`) after being written.
 
 ## Error handling
 
