@@ -1,0 +1,234 @@
+:root {
+  --page-bg: #f7f3ea;
+  --card-border: #c9c0b2;
+  --ink: #252b29;
+  --terracotta: #c76547;
+  --sage: #718a68;
+  --sage-hover-bg: #eef0e8;
+  --sage-hover-border: #a8b09d;
+  --surface: #fffdf8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: 'Quicksand', system-ui, sans-serif;
+}
+
+.app {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.app-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-mark {
+  font-size: 2rem;
+}
+
+.brand h1 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+}
+
+.brand-tagline {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sage);
+}
+
+.header-icons {
+  display: flex;
+  gap: 1rem;
+  font-size: 1.2rem;
+  opacity: 0.7;
+}
+
+.app-body {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sidebar li {
+  padding: 0.6rem 1rem;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  opacity: 0.75;
+}
+
+.sidebar li.active {
+  background: var(--surface);
+  border: 1.5px solid var(--card-border);
+  opacity: 1;
+  font-weight: 600;
+}
+
+.study-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.study-toolbar {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.deck-pill {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1.5px solid var(--card-border);
+  font-size: 0.85rem;
+}
+
+.progress {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.progress-label {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #e7e1d3;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--sage);
+  border-radius: 999px;
+}
+
+.study-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-button {
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--card-border);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.nav-button:hover:not(:disabled) {
+  background: var(--sage-hover-bg);
+  border-color: var(--sage-hover-border);
+}
+
+.nav-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.app-decor {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.app-decor--plant {
+  top: 4%;
+  left: 2%;
+  font-size: 3.5rem;
+}
+
+.app-decor--books {
+  bottom: 6%;
+  left: 3%;
+  font-size: 3rem;
+}
+
+.app-decor--mug {
+  bottom: 8%;
+  right: 4%;
+  font-size: 3rem;
+}
+
+.app-decor--notes {
+  top: 6%;
+  right: 3%;
+  font-size: 2.5rem;
+}
+
+.app-decor--art {
+  top: 32%;
+  right: 1.5%;
+  font-size: 2.75rem;
+}
+
+@media (max-width: 720px) {
+  .app-body {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .app-decor {
+    display: none;
+  }
+}
